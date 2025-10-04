@@ -25,9 +25,10 @@ export function ActivationForm() {
       const success = activateLicense(activationCode)
 
       if (success) {
+        alert("Sistema ativado com sucesso!")
         window.location.reload()
       } else {
-        setError("Código de ativação inválido. Entre em contato com o desenvolvedor.")
+        setError("Código de ativação inválido. Certifique-se de usar um código novo gerado após atualizar a página.")
       }
       setIsLoading(false)
     }, 500)

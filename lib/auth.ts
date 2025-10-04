@@ -4,6 +4,7 @@ import { licenseStorage } from "./storage"
 import type { License } from "./types"
 
 const MASTER_PASSWORD = "MASTER2024@BAR"
+const DELIMITER = "|"
 
 export function generateActivationCode(masterPassword: string, days: number): string | null {
   if (masterPassword !== MASTER_PASSWORD) {
@@ -11,7 +12,7 @@ export function generateActivationCode(masterPassword: string, days: number): st
   }
 
   const expirationDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
-  const code = btoa(`${MASTER_PASSWORD}:${expirationDate.toISOString()}:${Date.now()}`)
+  const code = btoa(`${MASTER_PASSWORD}${DELIMITER}${expirationDate.toISOString()}${DELIMITER}${Date.now()}`)
   return code
 }
 
@@ -21,17 +22,29 @@ export function activateLicense(activationCode: string): boolean {
     const decoded = atob(activationCode)
     console.log("[v0] Decoded string:", decoded)
 
-    const parts = decoded.split(":")
+    const parts = decoded.split(DELIMITER)
     console.log("[v0] Split parts:", parts)
+    console.log("[v0] Number of parts:", parts.length)
+
+    if (parts.length !== 3) {
+      console.log("[v0] Invalid code format - expected 3 parts, got", parts.length)
+      return false
+    }
 
     const password = parts[0]
     const expirationDateStr = parts[1]
 
     console.log("[v0] Password match:", password === MASTER_PASSWORD)
-    console.log("[v0] Expiration date:", expirationDateStr)
+    console.log("[v0] Expiration date string:", expirationDateStr)
 
     if (password !== MASTER_PASSWORD) {
       console.log("[v0] Password mismatch!")
+      return false
+    }
+
+    const expirationDate = new Date(expirationDateStr)
+    if (isNaN(expirationDate.getTime())) {
+      console.log("[v0] Invalid expiration date!")
       return false
     }
 
