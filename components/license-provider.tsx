@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { createContext, useContext, useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { getLicenseInfo, requestNotificationPermission, sendExpirationNotification } from "@/lib/auth"
 import { ActivationForm } from "./activation-form"
 
@@ -23,6 +24,7 @@ export function useLicense() {
 }
 
 export function LicenseProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const [licenseInfo, setLicenseInfo] = useState<LicenseContextType>({
     isValid: false,
     daysRemaining: 0,
@@ -60,7 +62,7 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!licenseInfo.isValid) {
+  if (!licenseInfo.isValid && pathname !== "/admin") {
     return <ActivationForm />
   }
 
