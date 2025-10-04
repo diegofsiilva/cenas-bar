@@ -17,10 +17,21 @@ export function generateActivationCode(masterPassword: string, days: number): st
 
 export function activateLicense(activationCode: string): boolean {
   try {
+    console.log("[v0] Attempting to activate with code:", activationCode)
     const decoded = atob(activationCode)
-    const [password, expirationDateStr] = decoded.split(":")
+    console.log("[v0] Decoded string:", decoded)
+
+    const parts = decoded.split(":")
+    console.log("[v0] Split parts:", parts)
+
+    const password = parts[0]
+    const expirationDateStr = parts[1]
+
+    console.log("[v0] Password match:", password === MASTER_PASSWORD)
+    console.log("[v0] Expiration date:", expirationDateStr)
 
     if (password !== MASTER_PASSWORD) {
+      console.log("[v0] Password mismatch!")
       return false
     }
 
@@ -32,9 +43,12 @@ export function activateLicense(activationCode: string): boolean {
       activationCode,
     }
 
+    console.log("[v0] Saving license:", license)
     licenseStorage.save(license)
+    console.log("[v0] License saved successfully!")
     return true
-  } catch {
+  } catch (error) {
+    console.log("[v0] Error during activation:", error)
     return false
   }
 }
