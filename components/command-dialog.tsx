@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -48,6 +48,10 @@ export function CommandDialog({ command, open, onClose, onSave, onFinalize }: Co
     }
   }, [command])
 
+  const total = useMemo(() => {
+    return items.reduce((sum, item) => sum + item.subtotal, 0)
+  }, [items])
+
   const handleAddItem = () => {
     const product = products.find((p) => p.id === selectedProductId)
     if (!product) {
@@ -87,17 +91,34 @@ export function CommandDialog({ command, open, onClose, onSave, onFinalize }: Co
       addedAt: new Date().toISOString(),
     }
 
-    setItems([...items, newItem])
+    const updatedItems = [...items, newItem]
+    setItems(updatedItems)
+
+    if (command) {
+      const updatedCommand: Command = {
+        ...command,
+        items: updatedItems,
+        total: updatedItems.reduce((sum, item) => sum + item.subtotal, 0),
+      }
+      onSave(updatedCommand)
+    }
+
     setSelectedProductId("")
     setQuantity(1)
   }
 
   const handleRemoveItem = (itemId: string) => {
-    setItems(items.filter((item) => item.id !== itemId))
-  }
+    const updatedItems = items.filter((item) => item.id !== itemId)
+    setItems(updatedItems)
 
-  const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + item.subtotal, 0)
+    if (command) {
+      const updatedCommand: Command = {
+        ...command,
+        items: updatedItems,
+        total: updatedItems.reduce((sum, item) => sum + item.subtotal, 0),
+      }
+      onSave(updatedCommand)
+    }
   }
 
   const handleSave = () => {
@@ -106,7 +127,7 @@ export function CommandDialog({ command, open, onClose, onSave, onFinalize }: Co
     const updatedCommand: Command = {
       ...command,
       items,
-      total: calculateTotal(),
+      total,
     }
 
     onSave(updatedCommand)
@@ -131,7 +152,7 @@ export function CommandDialog({ command, open, onClose, onSave, onFinalize }: Co
     const updatedCommand: Command = {
       ...command,
       items,
-      total: calculateTotal(),
+      total,
     }
 
     onFinalize(updatedCommand, paymentMethod)
@@ -217,7 +238,7 @@ export function CommandDialog({ command, open, onClose, onSave, onFinalize }: Co
             {/* Total */}
             <div className="flex justify-between items-center p-4 bg-primary/10 rounded-md">
               <span className="font-semibold text-lg">Total:</span>
-              <span className="font-bold text-2xl">R$ {calculateTotal().toFixed(2)}</span>
+              <span className="font-bold text-2xl">R$ {total.toFixed(2)}</span>
             </div>
 
             {/* Payment Method */}

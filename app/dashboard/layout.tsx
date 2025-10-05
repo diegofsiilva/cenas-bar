@@ -13,8 +13,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-screen w-64 border-r bg-card flex flex-col">
         <div className="flex h-16 items-center gap-2 border-b px-6 flex-shrink-0">
-        <img src="/logo.png" alt="Logo" className="h-20 w-20" />
-          <span className="font-bold text-lg">Cenas Bar e Lounge</span>
+          <UtensilsCrossed className="h-6 w-6" />
+          <span className="font-bold text-lg">Gestão Bar</span>
         </div>
 
         <nav className="flex flex-col gap-1 p-4 flex-1 overflow-y-auto">

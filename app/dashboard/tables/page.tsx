@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { AddTableDialog } from "@/components/add-table-dialog"
 import { TableCard } from "@/components/table-card"
@@ -155,9 +155,11 @@ export default function TablesPage() {
     }
   }
 
-  const getCommandForTable = (tableId: string) => {
-    return commands.find((c) => c.tableId === tableId && c.status === "open")
-  }
+  const getCommandForTable = useMemo(() => {
+    return (tableId: string) => {
+      return commands.find((c) => c.tableId === tableId && c.status === "open")
+    }
+  }, [commands])
 
   return (
     <div className="space-y-6">
