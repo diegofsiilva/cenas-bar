@@ -1,168 +1,210 @@
-// LocalStorage wrapper with type safety
-
-import type { License, Table, Command, Category, Product, Sale, StockMovement } from "./types"
-
-const STORAGE_KEYS = {
-  LICENSE: "bar_license", // Changed from USERS to LICENSE
-  TABLES: "bar_tables",
-  COMMANDS: "bar_commands",
-  CATEGORIES: "bar_categories",
-  PRODUCTS: "bar_products",
-  SALES: "bar_sales",
-  STOCK_MOVEMENTS: "bar_stock_movements",
-} as const
-
-// Generic storage functions
-function getFromStorage<T>(key: string): T[] {
-  if (typeof window === "undefined") return []
-  const data = localStorage.getItem(key)
-  return data ? JSON.parse(data) : []
-}
-
-function saveToStorage<T>(key: string, data: T[]): void {
-  if (typeof window === "undefined") return
-  localStorage.setItem(key, JSON.stringify(data))
-}
+import type { License, Table, Command, Category, Product, Sale, InventoryMovement } from "./types"
 
 // License Storage
 export const licenseStorage = {
-  get: (): License | null => {
-    if (typeof window === "undefined") return null
-    const data = localStorage.getItem(STORAGE_KEYS.LICENSE)
-    return data ? JSON.parse(data) : null
+  get: async (): Promise<License | null> => {
+    try {
+      const res = await fetch("/api/license")
+      if (!res.ok) return null
+      return await res.json()
+    } catch {
+      return null
+    }
   },
-  save: (license: License) => {
-    if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEYS.LICENSE, JSON.stringify(license))
+  save: async (license: License) => {
+    await fetch("/api/license", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(license),
+    })
   },
-  clear: () => {
-    if (typeof window === "undefined") return
-    localStorage.removeItem(STORAGE_KEYS.LICENSE)
+  clear: async () => {
+    await fetch("/api/license", { method: "DELETE" })
   },
 }
 
 // Tables
 export const tableStorage = {
-  getAll: (): Table[] => getFromStorage<Table>(STORAGE_KEYS.TABLES),
-  save: (tables: Table[]) => saveToStorage(STORAGE_KEYS.TABLES, tables),
-  add: (table: Table) => {
-    const tables = tableStorage.getAll()
-    tables.push(table)
-    tableStorage.save(tables)
-  },
-  update: (id: string, updates: Partial<Table>) => {
-    const tables = tableStorage.getAll()
-    const index = tables.findIndex((t) => t.id === id)
-    if (index !== -1) {
-      tables[index] = { ...tables[index], ...updates }
-      tableStorage.save(tables)
+  getAll: async (): Promise<Table[]> => {
+    try {
+      const res = await fetch("/api/tables")
+      if (!res.ok) return []
+      return await res.json()
+    } catch {
+      return []
     }
   },
-  delete: (id: string) => {
-    const tables = tableStorage.getAll().filter((t) => t.id !== id)
-    tableStorage.save(tables)
+  add: async (table: Table) => {
+    await fetch("/api/tables", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(table),
+    })
+  },
+  update: async (id: string, updates: Partial<Table>) => {
+    await fetch("/api/tables", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...updates }),
+    })
+  },
+  delete: async (id: string) => {
+    await fetch(`/api/tables?id=${id}`, { method: "DELETE" })
   },
 }
 
 // Commands
 export const commandStorage = {
-  getAll: (): Command[] => getFromStorage<Command>(STORAGE_KEYS.COMMANDS),
-  save: (commands: Command[]) => saveToStorage(STORAGE_KEYS.COMMANDS, commands),
-  add: (command: Command) => {
-    const commands = commandStorage.getAll()
-    commands.push(command)
-    commandStorage.save(commands)
-  },
-  update: (id: string, updates: Partial<Command>) => {
-    const commands = commandStorage.getAll()
-    const index = commands.findIndex((c) => c.id === id)
-    if (index !== -1) {
-      commands[index] = { ...commands[index], ...updates }
-      commandStorage.save(commands)
+  getAll: async (): Promise<Command[]> => {
+    try {
+      const res = await fetch("/api/commands")
+      if (!res.ok) return []
+      return await res.json()
+    } catch {
+      return []
     }
   },
-  delete: (id: string) => {
-    const commands = commandStorage.getAll().filter((c) => c.id !== id)
-    commandStorage.save(commands)
+  getByTableId: async (tableId: string): Promise<Command | null> => {
+    try {
+      const res = await fetch(`/api/commands?tableId=${tableId}`)
+      if (!res.ok) return null
+      return await res.json()
+    } catch {
+      return null
+    }
   },
-  getOpenCommands: (): Command[] => {
-    return commandStorage.getAll().filter((c) => c.status === "open")
+  add: async (command: Command) => {
+    await fetch("/api/commands", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(command),
+    })
+  },
+  update: async (id: string, updates: Partial<Command>) => {
+    await fetch("/api/commands", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...updates }),
+    })
+  },
+  delete: async (id: string) => {
+    await fetch(`/api/commands?id=${id}`, { method: "DELETE" })
+  },
+  getOpenCommands: async (): Promise<Command[]> => {
+    const commands = await commandStorage.getAll()
+    return commands.filter((c) => c.status === "open")
   },
 }
 
 // Categories
 export const categoryStorage = {
-  getAll: (): Category[] => getFromStorage<Category>(STORAGE_KEYS.CATEGORIES),
-  save: (categories: Category[]) => saveToStorage(STORAGE_KEYS.CATEGORIES, categories),
-  add: (category: Category) => {
-    const categories = categoryStorage.getAll()
-    categories.push(category)
-    categoryStorage.save(categories)
-  },
-  update: (id: string, updates: Partial<Category>) => {
-    const categories = categoryStorage.getAll()
-    const index = categories.findIndex((c) => c.id === id)
-    if (index !== -1) {
-      categories[index] = { ...categories[index], ...updates }
-      categoryStorage.save(categories)
+  getAll: async (): Promise<Category[]> => {
+    try {
+      const res = await fetch("/api/categories")
+      if (!res.ok) return []
+      return await res.json()
+    } catch {
+      return []
     }
   },
-  delete: (id: string) => {
-    const categories = categoryStorage.getAll().filter((c) => c.id !== id)
-    categoryStorage.save(categories)
+  add: async (category: Category) => {
+    await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(category),
+    })
+  },
+  update: async (id: string, updates: Partial<Category>) => {
+    await fetch("/api/categories", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...updates }),
+    })
+  },
+  delete: async (id: string) => {
+    await fetch(`/api/categories?id=${id}`, { method: "DELETE" })
   },
 }
 
 // Products
 export const productStorage = {
-  getAll: (): Product[] => getFromStorage<Product>(STORAGE_KEYS.PRODUCTS),
-  save: (products: Product[]) => saveToStorage(STORAGE_KEYS.PRODUCTS, products),
-  add: (product: Product) => {
-    const products = productStorage.getAll()
-    products.push(product)
-    productStorage.save(products)
-  },
-  update: (id: string, updates: Partial<Product>) => {
-    const products = productStorage.getAll()
-    const index = products.findIndex((p) => p.id === id)
-    if (index !== -1) {
-      products[index] = { ...products[index], ...updates }
-      productStorage.save(products)
+  getAll: async (): Promise<Product[]> => {
+    try {
+      const res = await fetch("/api/products")
+      if (!res.ok) return []
+      return await res.json()
+    } catch {
+      return []
     }
   },
-  delete: (id: string) => {
-    const products = productStorage.getAll().filter((p) => p.id !== id)
-    productStorage.save(products)
+  add: async (product: Product) => {
+    await fetch("/api/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(product),
+    })
   },
-  getLowStock: (): Product[] => {
-    return productStorage.getAll().filter((p) => p.stockQuantity <= p.minStockAlert)
+  update: async (id: string, updates: Partial<Product>) => {
+    await fetch("/api/products", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...updates }),
+    })
+  },
+  delete: async (id: string) => {
+    await fetch(`/api/products?id=${id}`, { method: "DELETE" })
+  },
+  getLowStock: async (): Promise<Product[]> => {
+    const products = await productStorage.getAll()
+    return products.filter((p) => p.stock <= 10) // Low stock threshold
   },
 }
 
 // Sales
 export const saleStorage = {
-  getAll: (): Sale[] => getFromStorage<Sale>(STORAGE_KEYS.SALES),
-  save: (sales: Sale[]) => saveToStorage(STORAGE_KEYS.SALES, sales),
-  add: (sale: Sale) => {
-    const sales = saleStorage.getAll()
-    sales.push(sale)
-    saleStorage.save(sales)
+  getAll: async (): Promise<Sale[]> => {
+    try {
+      const res = await fetch("/api/sales")
+      if (!res.ok) return []
+      return await res.json()
+    } catch {
+      return []
+    }
   },
-  getSalesByDateRange: (startDate: string, endDate: string): Sale[] => {
-    return saleStorage.getAll().filter((s) => s.soldAt >= startDate && s.soldAt <= endDate)
+  add: async (sale: Sale) => {
+    await fetch("/api/sales", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(sale),
+    })
+  },
+  getSalesByDateRange: async (startDate: string, endDate: string): Promise<Sale[]> => {
+    const sales = await saleStorage.getAll()
+    return sales.filter((s) => s.createdAt >= startDate && s.createdAt <= endDate)
   },
 }
 
-// Stock Movements
-export const stockMovementStorage = {
-  getAll: (): StockMovement[] => getFromStorage<StockMovement>(STORAGE_KEYS.STOCK_MOVEMENTS),
-  save: (movements: StockMovement[]) => saveToStorage(STORAGE_KEYS.STOCK_MOVEMENTS, movements),
-  add: (movement: StockMovement) => {
-    const movements = stockMovementStorage.getAll()
-    movements.push(movement)
-    stockMovementStorage.save(movements)
+// Inventory Movements
+export const inventoryStorage = {
+  getAll: async (): Promise<InventoryMovement[]> => {
+    try {
+      const res = await fetch("/api/inventory")
+      if (!res.ok) return []
+      return await res.json()
+    } catch {
+      return []
+    }
+  },
+  add: async (movement: InventoryMovement) => {
+    await fetch("/api/inventory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(movement),
+    })
   },
 }
+
+export const stockMovementStorage = inventoryStorage
 
 // Initialize default data - system requires activation
 export function initializeDefaultData() {
