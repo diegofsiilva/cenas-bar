@@ -36,33 +36,34 @@ export default function ProductsPage() {
     loadData()
   }, [])
 
-  const loadData = () => {
-    setProducts(productStorage.getAll())
-    setCategories(categoryStorage.getAll())
+  const loadData = async () => {
+    const [productsData, categoriesData] = await Promise.all([productStorage.getAll(), categoryStorage.getAll()])
+    setProducts(productsData)
+    setCategories(categoriesData)
   }
 
-  const handleAddCategory = (categoryData: Omit<Category, "id" | "createdAt">) => {
+  const handleAddCategory = async (categoryData: Omit<Category, "id" | "createdAt">) => {
     const newCategory: Category = {
       id: crypto.randomUUID(),
       ...categoryData,
       createdAt: new Date().toISOString(),
     }
-    categoryStorage.add(newCategory)
-    loadData()
+    await categoryStorage.add(newCategory)
+    await loadData()
     toast({
       title: "Sucesso",
       description: "Categoria adicionada com sucesso",
     })
   }
 
-  const handleAddProduct = (productData: Omit<Product, "id" | "createdAt">) => {
+  const handleAddProduct = async (productData: Omit<Product, "id" | "createdAt">) => {
     const newProduct: Product = {
       id: crypto.randomUUID(),
       ...productData,
       createdAt: new Date().toISOString(),
     }
-    productStorage.add(newProduct)
-    loadData()
+    await productStorage.add(newProduct)
+    await loadData()
     toast({
       title: "Sucesso",
       description: "Produto adicionado com sucesso",
@@ -73,10 +74,10 @@ export default function ProductsPage() {
     setProductToDelete(product)
   }
 
-  const confirmDeleteProduct = () => {
+  const confirmDeleteProduct = async () => {
     if (productToDelete) {
-      productStorage.delete(productToDelete.id)
-      loadData()
+      await productStorage.delete(productToDelete.id)
+      await loadData()
       toast({
         title: "Sucesso",
         description: "Produto excluído com sucesso",
@@ -98,10 +99,10 @@ export default function ProductsPage() {
     setCategoryToDelete(category)
   }
 
-  const confirmDeleteCategory = () => {
+  const confirmDeleteCategory = async () => {
     if (categoryToDelete) {
-      categoryStorage.delete(categoryToDelete.id)
-      loadData()
+      await categoryStorage.delete(categoryToDelete.id)
+      await loadData()
       toast({
         title: "Sucesso",
         description: "Categoria excluída com sucesso",
@@ -116,7 +117,7 @@ export default function ProductsPage() {
     return matchesSearch && matchesCategory
   })
 
-  const lowStockProducts = products.filter((p) => p.stockQuantity <= p.minStockAlert)
+  const lowStockProducts = products.filter((p) => p.stock <= 10)
 
   return (
     <div className="space-y-6">

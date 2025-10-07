@@ -20,8 +20,12 @@ export default function ReportsPage() {
   const [dateRange, setDateRange] = useState<DateRange>("week")
 
   useEffect(() => {
-    setSales(saleStorage.getAll())
-    setProducts(productStorage.getAll())
+    const loadData = async () => {
+      const [salesData, productsData] = await Promise.all([saleStorage.getAll(), productStorage.getAll()])
+      setSales(salesData)
+      setProducts(productsData)
+    }
+    loadData()
   }, [])
 
   const filteredSales = useMemo(() => {

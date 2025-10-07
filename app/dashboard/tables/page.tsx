@@ -32,26 +32,27 @@ export default function TablesPage() {
     loadData()
   }, [])
 
-  const loadData = () => {
-    setTables(tableStorage.getAll())
-    setCommands(commandStorage.getAll())
+  const loadData = async () => {
+    const [tablesData, commandsData] = await Promise.all([tableStorage.getAll(), commandStorage.getAll()])
+    setTables(tablesData)
+    setCommands(commandsData)
   }
 
-  const handleAddTable = (tableData: Omit<Table, "id" | "createdAt">) => {
+  const handleAddTable = async (tableData: Omit<Table, "id" | "createdAt">) => {
     const newTable: Table = {
       id: crypto.randomUUID(),
       ...tableData,
       createdAt: new Date().toISOString(),
     }
-    tableStorage.add(newTable)
-    loadData()
+    await tableStorage.add(newTable)
+    await loadData()
     toast({
       title: "Sucesso",
       description: "Mesa adicionada com sucesso",
     })
   }
 
-  const handleOpenCommand = (table: Table) => {
+  const handleOpenCommand = async (table: Table) => {
     const newCommand: Command = {
       id: crypto.randomUUID(),
       tableId: table.id,
@@ -61,10 +62,10 @@ export default function TablesPage() {
       items: [],
       total: 0,
     }
-    commandStorage.add(newCommand)
+    await commandStorage.add(newCommand)
     setSelectedCommand(newCommand)
     setCommandDialogOpen(true)
-    loadData()
+    await loadData()
   }
 
   const handleViewCommand = (command: Command) => {
@@ -72,22 +73,24 @@ export default function TablesPage() {
     setCommandDialogOpen(true)
   }
 
-  const handleSaveCommand = (command: Command) => {
-    commandStorage.update(command.id, command)
-    loadData()
+  const handleSaveCommand = async (command: Command) => {
+    await commandStorage.update(command.id, command)
+    await loadData()
   }
 
-  const handleFinalizeCommand = (command: Command, paymentMethod: "cash" | "card" | "pix") => {
+  const handleFinalizeCommand = async (command: Command, paymentMethod: "cash" | "card" | "pix") => {
     // Update stock for each item
-    command.items.forEach((item) => {
-      const product = productStorage.getAll().find((p) => p.id === item.productId)
+    const allProducts = await productStorage.getAll()
+
+    for (const item of command.items) {
+      const product = allProducts.find((p) => p.id === item.productId)
       if (product) {
-        productStorage.update(product.id, {
-          stockQuantity: product.stockQuantity - item.quantity,
+        await productStorage.update(product.id, {
+          stock: product.stock - item.quantity,
         })
 
         // Record stock movement
-        stockMovementStorage.add({
+        await stockMovementStorage.add({
           id: crypto.randomUUID(),
           productId: product.id,
           productName: product.name,
@@ -95,10 +98,10 @@ export default function TablesPage() {
           quantity: item.quantity,
           reason: `Venda - Comanda ${command.tableName}`,
           performedBy: "Sistema",
-          performedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
         })
       }
-    })
+    }
 
     // Create sale record
     const sale: Sale = {
@@ -110,19 +113,19 @@ export default function TablesPage() {
       total: command.total,
       paymentMethod,
       soldBy: "Sistema",
-      soldAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     }
-    saleStorage.add(sale)
+    await saleStorage.add(sale)
 
     // Close command
-    commandStorage.update(command.id, {
+    await commandStorage.update(command.id, {
       status: "closed",
       closedAt: new Date().toISOString(),
     })
 
     setCommandDialogOpen(false)
     setSelectedCommand(null)
-    loadData()
+    await loadData()
 
     toast({
       title: "Venda finalizada",
@@ -130,7 +133,7 @@ export default function TablesPage() {
     })
   }
 
-  const handleDeleteTable = (table: Table) => {
+  const handleDeleteTable = async (table: Table) => {
     const openCommand = commands.find((c) => c.tableId === table.id && c.status === "open")
     if (openCommand) {
       toast({
@@ -143,10 +146,10 @@ export default function TablesPage() {
     setTableToDelete(table)
   }
 
-  const confirmDeleteTable = () => {
+  const confirmDeleteTable = async () => {
     if (tableToDelete) {
-      tableStorage.delete(tableToDelete.id)
-      loadData()
+      await tableStorage.delete(tableToDelete.id)
+      await loadData()
       toast({
         title: "Sucesso",
         description: "Mesa excluída com sucesso",

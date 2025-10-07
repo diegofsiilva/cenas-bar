@@ -20,9 +20,10 @@ export default function SalesPage() {
     loadSales()
   }, [])
 
-  const loadSales = () => {
-    const allSales = saleStorage.getAll().sort((a, b) => new Date(b.soldAt).getTime() - new Date(a.soldAt).getTime())
-    setSales(allSales)
+  const loadSales = async () => {
+    const allSales = await saleStorage.getAll()
+    const sortedSales = allSales.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    setSales(sortedSales)
   }
 
   const filteredSales = sales.filter((sale) => {

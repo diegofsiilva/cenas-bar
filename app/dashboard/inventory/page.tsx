@@ -24,19 +24,20 @@ export default function InventoryPage() {
     loadData()
   }, [])
 
-  const loadData = () => {
-    setProducts(productStorage.getAll())
-    const allMovements = stockMovementStorage
-      .getAll()
-      .sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime())
-    setMovements(allMovements)
+  const loadData = async () => {
+    const [productsData, movementsData] = await Promise.all([productStorage.getAll(), stockMovementStorage.getAll()])
+    setProducts(productsData)
+    const sortedMovements = movementsData.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    setMovements(sortedMovements)
   }
 
-  const handleStockAdjustment = (movementData: Omit<StockMovement, "id" | "performedAt">) => {
+  const handleStockAdjustment = async (movementData: Omit<StockMovement, "id" | "performedAt">) => {
     const product = products.find((p) => p.id === movementData.productId)
     if (!product) return
 
-    let newStock = product.stockQuantity
+    let newStock = product.stock
 
     switch (movementData.type) {
       case "in":
@@ -60,18 +61,18 @@ export default function InventoryPage() {
     }
 
     // Update product stock
-    productStorage.update(product.id, { stockQuantity: newStock })
+    await productStorage.update(product.id, { stock: newStock })
 
     // Record movement
     const movement: StockMovement = {
       id: crypto.randomUUID(),
       ...movementData,
       performedBy: "Sistema",
-      performedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     }
-    stockMovementStorage.add(movement)
+    await stockMovementStorage.add(movement)
 
-    loadData()
+    await loadData()
     toast({
       title: "Sucesso",
       description: "Estoque atualizado com sucesso",
@@ -84,9 +85,9 @@ export default function InventoryPage() {
     return matchesSearch && matchesType
   })
 
-  const lowStockProducts = products.filter((p) => p.stockQuantity <= p.minStockAlert)
+  const lowStockProducts = products.filter((p) => p.stock <= 10)
   const totalProducts = products.length
-  const totalStockValue = products.reduce((sum, p) => sum + p.price * p.stockQuantity, 0)
+  const totalStockValue = products.reduce((sum, p) => sum + p.price * p.stock, 0)
 
   const getMovementIcon = (type: string) => {
     switch (type) {
@@ -188,7 +189,7 @@ export default function InventoryPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-destructive">
-                      {product.stockQuantity} / {product.minStockAlert}
+                      {product.stock} / {product.minStockAlert}
                     </p>
                     <p className="text-xs text-muted-foreground">Atual / Mínimo</p>
                   </div>
@@ -244,7 +245,7 @@ export default function InventoryPage() {
                       </div>
                       <p className="text-sm text-muted-foreground mb-1">{movement.reason}</p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>{format(new Date(movement.performedAt), "PPp", { locale: ptBR })}</span>
+                        <span>{format(new Date(movement.createdAt), "PPp", { locale: ptBR })}</span>
                         <span>Por: {movement.performedBy}</span>
                       </div>
                     </div>
