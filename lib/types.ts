@@ -1,29 +1,13 @@
-// Core data types for the bar/bistro management system
-
 export interface License {
-  id: string
-  activatedAt: string
+  activationCode: string
   expirationDate: string
-  isActive: boolean
-  activationCode?: string
+  activatedAt: string
 }
 
 export interface Table {
   id: string
   name: string
-  description?: string
   createdAt: string
-}
-
-export interface Command {
-  id: string
-  tableId: string
-  tableName: string
-  openedAt: string
-  closedAt?: string
-  status: "open" | "closed"
-  items: CommandItem[]
-  total: number
 }
 
 export interface CommandItem {
@@ -33,7 +17,16 @@ export interface CommandItem {
   quantity: number
   unitPrice: number
   subtotal: number
-  addedAt: string
+}
+
+export interface Command {
+  id: string
+  tableId: string
+  items: CommandItem[]
+  total: number
+  status: "open" | "closed"
+  openedAt: string
+  closedAt?: string | null
 }
 
 export interface Category {
@@ -46,10 +39,8 @@ export interface Product {
   id: string
   name: string
   categoryId: string
-  categoryName: string
   price: number
-  stockQuantity: number
-  minStockAlert: number
+  stock: number
   createdAt: string
 }
 
@@ -57,21 +48,19 @@ export interface Sale {
   id: string
   commandId: string
   tableId: string
-  tableName: string
   items: CommandItem[]
   total: number
   paymentMethod: "cash" | "card" | "pix"
-  soldBy: string // username
-  soldAt: string
+  createdAt: string
 }
 
-export interface StockMovement {
+export interface InventoryMovement {
   id: string
   productId: string
-  productName: string
-  type: "in" | "out" | "adjustment"
+  type: "in" | "out" | "adjustment" | "sale"
   quantity: number
-  reason: string
-  performedBy: string
-  performedAt: string
+  reason?: string | null
+  createdAt: string
 }
+
+export type StockMovement = InventoryMovement
