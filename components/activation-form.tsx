@@ -16,22 +16,24 @@ export function ActivationForm() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleActivate = (e: React.FormEvent) => {
+  const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    setTimeout(() => {
-      const success = activateLicense(activationCode)
+    try {
+      const success = await activateLicense(activationCode)
 
       if (success) {
-        alert("Sistema ativado com sucesso!")
-        window.location.reload()
+        window.location.href = "/dashboard"
       } else {
-        setError("Código de ativação inválido. Certifique-se de usar um código novo gerado após atualizar a página.")
+        setError("Código de ativação inválido. Verifique o código e tente novamente.")
       }
+    } catch (error) {
+      setError("Erro ao ativar o sistema. Tente novamente.")
+    } finally {
       setIsLoading(false)
-    }, 500)
+    }
   }
 
   return (

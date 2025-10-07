@@ -33,15 +33,13 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const checkLicense = () => {
-      const info = getLicenseInfo()
+    const checkLicense = async () => {
+      const info = await getLicenseInfo()
       setLicenseInfo(info)
       setIsLoading(false)
 
-      // Request notification permission
       requestNotificationPermission()
 
-      // Send notification if expiring soon
       if (info.isValid && info.daysRemaining <= 7 && info.daysRemaining > 0) {
         sendExpirationNotification(info.daysRemaining)
       }
@@ -49,7 +47,6 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
 
     checkLicense()
 
-    // Check license every hour
     const interval = setInterval(checkLicense, 60 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])

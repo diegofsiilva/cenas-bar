@@ -1,8 +1,3 @@
-// License management utilities
-
-import { licenseStorage } from "./storage"
-import type { License } from "./types"
-
 const MASTER_PASSWORD = "MASTER2024@BAR"
 const DELIMITER = "|"
 
@@ -16,92 +11,72 @@ export function generateActivationCode(masterPassword: string, days: number): st
   return code
 }
 
-export function activateLicense(activationCode: string): boolean {
+export async function activateLicense(activationCode: string): Promise<boolean> {
   try {
-    console.log("[v0] Attempting to activate with code:", activationCode)
     const decoded = atob(activationCode)
-    console.log("[v0] Decoded string:", decoded)
-
     const parts = decoded.split(DELIMITER)
-    console.log("[v0] Split parts:", parts)
-    console.log("[v0] Number of parts:", parts.length)
 
     if (parts.length !== 3) {
-      console.log("[v0] Invalid code format - expected 3 parts, got", parts.length)
       return false
     }
 
     const password = parts[0]
     const expirationDateStr = parts[1]
 
-    console.log("[v0] Password match:", password === MASTER_PASSWORD)
-    console.log("[v0] Expiration date string:", expirationDateStr)
-
     if (password !== MASTER_PASSWORD) {
-      console.log("[v0] Password mismatch!")
       return false
     }
 
     const expirationDate = new Date(expirationDateStr)
     if (isNaN(expirationDate.getTime())) {
-      console.log("[v0] Invalid expiration date!")
       return false
     }
 
-    const license: License = {
-      id: crypto.randomUUID(),
-      activatedAt: new Date().toISOString(),
-      expirationDate: expirationDateStr,
-      isActive: true,
-      activationCode,
-    }
+    const response = await fetch("/api/license", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        activationCode,
+        expirationDate: expirationDateStr,
+        activatedAt: new Date().toISOString(),
+      }),
+    })
 
-    console.log("[v0] Saving license:", license)
-    licenseStorage.save(license)
-    console.log("[v0] License saved successfully!")
-    return true
+    return response.ok
   } catch (error) {
-    console.log("[v0] Error during activation:", error)
+    console.error("Error during activation:", error)
     return false
   }
 }
 
-export function isLicenseValid(): boolean {
-  const license = licenseStorage.get()
-  if (!license || !license.isActive) {
-    return false
-  }
-
-  const now = new Date()
-  const expirationDate = new Date(license.expirationDate)
-
-  if (now > expirationDate) {
-    // Mark as inactive
-    licenseStorage.save({ ...license, isActive: false })
-    return false
-  }
-
-  return true
-}
-
-export function getLicenseInfo(): {
+export async function getLicenseInfo(): Promise<{
   isValid: boolean
   daysRemaining: number
   expirationDate: string | null
-} {
-  const license = licenseStorage.get()
-  if (!license) {
+}> {
+  try {
+    const response = await fetch("/api/license")
+    if (!response.ok) {
+      return { isValid: false, daysRemaining: 0, expirationDate: null }
+    }
+
+    const license = await response.json()
+    if (!license) {
+      return { isValid: false, daysRemaining: 0, expirationDate: null }
+    }
+
+    const now = new Date()
+    const expirationDate = new Date(license.expirationDate)
+    const daysRemaining = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+
+    return {
+      isValid: daysRemaining > 0,
+      daysRemaining: Math.max(0, daysRemaining),
+      expirationDate: license.expirationDate,
+    }
+  } catch (error) {
+    console.error("Error getting license info:", error)
     return { isValid: false, daysRemaining: 0, expirationDate: null }
-  }
-
-  const now = new Date()
-  const expirationDate = new Date(license.expirationDate)
-  const daysRemaining = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-  return {
-    isValid: daysRemaining > 0 && license.isActive,
-    daysRemaining: Math.max(0, daysRemaining),
-    expirationDate: license.expirationDate,
   }
 }
 
